@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>โปรแกรมขอยืม/คืนยา โรงพยาบาลนพรัตนราชธานี</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Sarabun', sans-serif !important;
+        }
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f0f9ff;
+        }
+        .dashboard-card {
+            transition: all 0.3s ease;
+        }
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .main-button {
+            transition: all 0.3s ease;
+        }
+        .main-button:hover {
+            transform: translateY(-2px);
+        }
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        th, td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        tbody tr:hover {
+            background-color: #f1f5f9;
+        }
+        .loader {
+            border-top-color: #3498db;
+            -webkit-animation: spinner 1.5s linear infinite;
+            animation: spinner 1.5s linear infinite;
+        }
+        @-webkit-keyframes spinner {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .slide-in {
+            animation: slideIn 0.5s ease-in-out;
+        }
+        @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-5 rounded-lg shadow-xl flex items-center">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mr-4"></div>
+            <p class="text-gray-700 text-lg">กำลังโหลดข้อมูล...</p>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold">โปรแกรมขอยืม/คืนยา</h1>
+                    <p class="text-blue-100">โรงพยาบาลนพรัตนราชธานี</p>
+                </div>
+                <div class="flex space-x-4">
+                    <button id="syncBtn" class="bg-blue-700 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-600 transition flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        ซิงค์ข้อมูล
+                    </button>
+                    <button id="historyBtn" class="bg-white text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition">
+                        ประวัติการยืม-คืน
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Dashboard -->
+        <section id="dashboard" class="mb-10 slide-in">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">แดชบอร์ด</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="dashboard-card bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-gray-500 text-sm">จำนวนยาที่ยืมไป</p>
+                            <p class="text-3xl font-bold text-gray-800" id="borrowedCount">0</p>
+                        </div>
+                        <div class="bg-blue-100 p-3 rounded-full">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="dashboard-card bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-gray-500 text-sm">จำนวนยาที่คืนแล้ว</p>
+                            <p class="text-3xl font-bold text-gray-800" id="returnedCount">0</p>
+                        </div>
+                        <div class="bg-green-100 p-3 rounded-full">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="dashboard-card bg-white rounded-xl shadow-md p-6 border-l-4 border-yellow-500">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-gray-500 text-sm">จำนวนยาที่ยังไม่คืน</p>
+                            <p class="text-3xl font-bold text-gray-800" id="pendingCount">0</p>
+                        </div>
+                        <div class="bg-yellow-100 p-3 rounded-full">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Actions -->
+        <section class="mb-10 slide-in" style="animation-delay: 0.1s;">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="main-button bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-xl shadow-lg p-8 text-center cursor-pointer" id="borrowBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 class="text-2xl font-bold mb-2">ยืมยา</h3>
+                    <p class="text-blue-100">บันทึกข้อมูลการยืมยาใหม่</p>
+                </div>
+                <div class="main-button bg-gradient-to-r from-green-500 to-green-700 text-white rounded-xl shadow-lg p-8 text-center cursor-pointer" id="returnBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 class="text-2xl font-bold mb-2">คืนยา</h3>
+                    <p class="text-green-100">บันทึกการคืนยาจากผู้ป่วย</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Recent Activity -->
+        <section class="slide-in" style="animation-delay: 0.2s;">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">กิจกรรมล่าสุด</h2>
+                <button id="viewAllActivitiesBtn" class="text-blue-600 hover:text-blue-800 font-medium flex items-center">
+                    ดูทั้งหมด
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+            <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="text-left text-gray-500 font-medium">วันที่</th>
+                                <th class="text-left text-gray-500 font-medium">HN</th>
+                                <th class="text-left text-gray-500 font-medium">ชื่อ-นามสกุล</th>
+                                <th class="text-left text-gray-500 font-medium">รายการยา</th>
+                                <th class="text-left text-gray-500 font-medium">สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentActivityTable">
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-gray-500">กำลังโหลดข้อมูล...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Borrow Modal -->
+    <div id="borrowModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden modal">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-2xl font-bold text-gray-800">บันทึกการยืมยา</h3>
+                    <button class="text-gray-400 hover:text-gray-600" id="closeBorrowModal">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <form id="borrowForm" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="hn" class="block text-sm font-medium text-gray-700 mb-1">HN</label>
+                            <input type="text" id="hn" name="hn" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        </div>
+                        <div>
+                            <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">เบอร์โทรติดต่อ</label>
+                            <input type="tel" id="phone" name="phone" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="firstName" class="block text-sm font-medium text-gray-700 mb-1">ชื่อจริง</label>
+                            <input type="text" id="firstName" name="firstName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        </div>
+                        <div>
+                            <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">นามสกุล</label>
+                            <input type="text" id="lastName" name="lastName" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        </div>
+                    </div>
+                    <div id="medicationContainer">
+                        <div class="medication-entry grid grid-cols-1 md:grid-cols-3 gap-6 pb-4 border-b border-gray-200">
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อยา</label>
+                                <input type="text" name="medication[]" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required list="commonMeds">
+                                <datalist id="commonMeds">
+                                    <option value="Paracetamol 500mg">
+                                    <option value="Amoxicillin 500mg">
+                                    <option value="Simvastatin 20mg">
+                                    <option value="Amlodipine 5mg">
+                                    <option value="Metformin 500mg">
+                                    <option value="Losartan 50mg">
+                                    <option value="Omeprazole 20mg">
+                                    <option value="Atorvastatin 40mg">
+                                    <option value="Loratadine 10mg">
+                                    <option value="Cetirizine 10mg">
+                                </datalist>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">จำนวน</label>
+                                <input type="number" name="quantity[]" min="1" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-center">
+                        <button type="button" id="addMedicationBtn" class="flex items-center text-blue-600 hover:text-blue-800">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                            </svg>
+                            เพิ่มรายการยา
+                        </button>
+                    </div>
+                    <div>
+                        <label for="pharmacist" class="block text-sm font-medium text-gray-700 mb-1">เภสัชกรผู้รับเรื่อง</label>
+                        <input type="text" id="pharmacist" name="pharmacist" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="button" id="cancelBorrowBtn" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 mr-4 hover:bg-gray-50">ยกเลิก</button>
+                        <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">บันทึกข้อมูล</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Return Modal -->
+    <div id="returnModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden modal">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-2xl font-bold text-gray-800">ค้นหาข้อมูลการยืมยา</h3>
+                    <button class="text-gray-400 hover:text-gray-600" id="closeReturnModal">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="mb-6">
+                    <div class="flex items-center mb-4">
+                        <div class="flex items-center mr-6">
+                            <input type="radio" id="searchByHN" name="searchType" value="hn" class="h-4 w-4 text-blue-600" checked>
+                            <label for="searchByHN" class="ml-2 text-gray-700">ค้นหาด้วย HN</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="radio" id="searchByName" name="searchType" value="name" class="h-4 w-4 text-blue-600">
+                            <label for="searchByName" class="ml-2 text-gray-700">ค้นหาด้วยชื่อ-นามสกุล</label>
+                        </div>
+                    </div>
+                    <div class="flex">
+                        <input type="text" id="searchInput" class="w-full px-4 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="พิมพ์คำค้นหา...">
+                        <button id="searchBtn" class="bg-blue-600 text-white px-4 py-2 rounded-r-lg hover:bg-blue-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h4 class="font-medium text-gray-700 mb-2">ผลการค้นหา</h4>
+                    <div id="searchResults" class="max-h-64 overflow-y-auto">
+                        <!-- Search results will be populated here -->
+                        <div class="text-gray-500 text-center py-8">กรุณาค้นหาข้อมูล</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Return Confirmation Modal -->
+    <div id="returnConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden modal">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-lg">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-gray-800">ยืนยันการคืนยา</h3>
+                    <button class="text-gray-400 hover:text-gray-600" id="closeReturnConfirmModal">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="mb-6">
+                    <p class="text-gray-700">คุณต้องการยืนยันการคืนยาของ <span id="returnPatientName" class="font-medium"></span> ใช่หรือไม่?</p>
+                    <div class="mt-4 bg-blue-50 p-4 rounded-lg">
+                        <h5 class="font-medium text-blue-800 mb-2">รายการยาที่คืน:</h5>
+                        <ul id="returnMedicationList" class="list-disc pl-5 text-blue-700">
+                            <!-- Medication list will be populated here -->
+                        </ul>
+                    </div>
+                </div>
+                <div class="flex justify-end">
+                    <button id="cancelReturnConfirmBtn" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 mr-4 hover:bg-gray-50">ยกเลิก</button>
+                    <button id="confirmReturnBtn" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">ยืนยันการคืนยา</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden modal">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-2xl font-bold text-gray-800">ประวัติการยืม-คืนยา</h3>
+                    <button class="text-gray-400 hover:text-gray-600" id="closeHistoryModal">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="mb-6 flex flex-wrap gap-4">
+                    <div class="flex-grow">
+                        <div class="flex">
+                            <input type="text" id="historySearchInput" class="w-full px-4 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="ค้นหาด้วย HN หรือ ชื่อ-นามสกุล...">
+                            <button id="historySearchBtn" class="bg-blue-600 text-white px-4 py-2 rounded-r-lg hover:bg-blue-700">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <label class="mr-2 text-gray-700">สถานะ:</label>
+                        <select id="statusFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="all">ทั้งหมด</option>
+                            <option value="pending">รอคืน</option>
+                            <option value="returned">คืนแล้ว</option>
+                        </select>
+                    </div>
+                    <button id="exportCSVBtn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        ส่งออก CSV
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="text-left text-gray-500 font-medium">วันที่</th>
+                                <th class="text-left text-gray-500 font-medium">HN</th>
+                                <th class="text-left text-gray-500 font-medium">ชื่อ-นามสกุล</th>
+                                <th class="text-left text-gray-500 font-medium">รายการยา</th>
+                                <th class="text-left text-gray-500 font-medium">สถานะ</th>
+                                <th class="text-left text-gray-500 font-medium">เภสัชกร</th>
+                                <th class="text-left text-gray-500 font-medium">วันที่คืน</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTable">
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-gray-500">กำลังโหลดข้อมูล...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Alert -->
+    <div id="successAlert" class="fixed top-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-md hidden">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p id="successAlertMessage" class="text-sm"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Alert -->
+    <div id="errorAlert" class="fixed top-4 right-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-md hidden">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p id="errorAlertMessage" class="text-sm"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="fixed inset-0 flex items-center justify-center z-[60]" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-8 mx-4">
+            <!-- Blue Icon with Checkmark -->
+            <div class="flex justify-center mb-6">
+                <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+            </div>
+            
+            <!-- Title -->
+            <h3 class="text-2xl font-bold text-gray-800 mb-2 text-center">เข้าสู่ระบบ</h3>
+            <p class="text-sm text-gray-600 text-center mb-6">โปรแกรมขอยืม/คืนยา โรงพยาบาลนพรัตนราชธานี</p>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อผู้ใช้</label>
+                    <input id="loginUsername" type="text" value="admin" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">รหัสผ่าน</label>
+                    <input id="loginPassword" type="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="กรอกรหัสผ่าน">
+                </div>
+                <p id="loginError" class="text-red-600 text-sm hidden text-center">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</p>
+                <button id="loginSubmit" class="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">เข้าสู่ระบบ</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ตัวแปรสำหรับเก็บ URL ของ API - กำหนดค่าเริ่มต้นเป็น URL ของคุณ
+        const API_URL = "https://script.google.com/macros/s/AKfycbxLhps1swD1yzn680KxK0JRxjirVM6OSIn4RnSs8QaHx71b-Dxb65a8XuoHRh6hIfIg/exec";
+
+        // ข้อมูลสำหรับการทำงาน
+        let borrowedMedications = [];
+        let medicationHistory = [];
+
+        // DOM Elements
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const borrowBtn = document.getElementById('borrowBtn');
+        const returnBtn = document.getElementById('returnBtn');
+        const borrowModal = document.getElementById('borrowModal');
+        const returnModal = document.getElementById('returnModal');
+        const closeBorrowModal = document.getElementById('closeBorrowModal');
+        const closeReturnModal = document.getElementById('closeReturnModal');
+        const borrowForm = document.getElementById('borrowForm');
+        const addMedicationBtn = document.getElementById('addMedicationBtn');
+        const medicationContainer = document.getElementById('medicationContainer');
+        const cancelBorrowBtn = document.getElementById('cancelBorrowBtn');
+        const searchBtn = document.getElementById('searchBtn');
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+        const returnConfirmModal = document.getElementById('returnConfirmModal');
+        const closeReturnConfirmModal = document.getElementById('closeReturnConfirmModal');
+        const cancelReturnConfirmBtn = document.getElementById('cancelReturnConfirmBtn');
+        const confirmReturnBtn = document.getElementById('confirmReturnBtn');
+        const returnPatientName = document.getElementById('returnPatientName');
+        const returnMedicationList = document.getElementById('returnMedicationList');
+        const historyBtn = document.getElementById('historyBtn');
+        const historyModal = document.getElementById('historyModal');
+        const closeHistoryModal = document.getElementById('closeHistoryModal');
+        const historyTable = document.getElementById('historyTable');
+        const historySearchBtn = document.getElementById('historySearchBtn');
+        const historySearchInput = document.getElementById('historySearchInput');
+        const statusFilter = document.getElementById('statusFilter');
+        const exportCSVBtn = document.getElementById('exportCSVBtn');
+        const syncBtn = document.getElementById('syncBtn');
+        const viewAllActivitiesBtn = document.getElementById('viewAllActivitiesBtn');
+        const successAlert = document.getElementById('successAlert');
+        const successAlertMessage = document.getElementById('successAlertMessage');
+        const errorAlert = document.getElementById('errorAlert');
+        const errorAlertMessage = document.getElementById('errorAlertMessage');
+        const loginModal = document.getElementById('loginModal');
+        const loginUsername = document.getElementById('loginUsername');
+        const loginPassword = document.getElementById('loginPassword');
+        const loginError = document.getElementById('loginError');
+        const loginSubmit = document.getElementById('loginSubmit');
+
+        // Dashboard counters
+        const borrowedCount = document.getElementById('borrowedCount');
+        const returnedCount = document.getElementById('returnedCount');
+        const pendingCount = document.getElementById('pendingCount');
+        const recentActivityTable = document.getElementById('recentActivityTable');
+
+        // ฟังก์ชันสำหรับดึงข้อมูลทั้งหมด
+        async function fetchAllData() {
+            try {
+                showLoading();
+                
+                // ใช้ JSONP เพื่อแก้ปัญหา CORS
+                const script = document.createElement('script');
+                const callbackName = 'jsonpCallback_' + Math.round(Math.random() * 10000000);
+                
+                window[callbackName] = function(result) {
+                    if (result.status === 'success') {
+                        borrowedMedications = result.data.map(item => {
+                            // แปลงข้อมูล medications จาก string เป็น array ถ้าจำเป็น
+                            let medications = item.medications;
+                            if (typeof medications === 'string') {
+                                try {
+                                    medications = JSON.parse(medications);
+                                } catch (e) {
+                                    console.error('Error parsing medications:', e);
+                                    medications = [];
+                                }
+                            }
+                            
+                            return {
+                                id: item.id,
+                                date: item.borrowdate, // ตัวพิมพ์เล็กตามที่ส่งมาจาก API
+                                hn: item.hn,
+                                firstName: item.firstname, // ตัวพิมพ์เล็กตามที่ส่งมาจาก API
+                                lastName: item.lastname, // ตัวพิมพ์เล็กตามที่ส่งมาจาก API
+                                medications: medications,
+                                phone: item.phone,
+                                pharmacist: item.pharmacist,
+                                status: item.status
+                            };
+                        });
+                        
+                        updateDashboard();
+                        hideLoading();
+                    } else {
+                        console.error('Error fetching data:', result.message);
+                        showErrorAlert('ไม่สามารถโหลดข้อมูลได้: ' + result.message);
+                        hideLoading();
+                    }
+                    
+                    // ลบฟังก์ชัน callback เมื่อใช้งานเสร็จ
+                    delete window[callbackName];
+                };
+                
+                script.src = `${API_URL}?action=getAll&callback=${callbackName}`;
+                document.body.appendChild(script);
+                
+                // ตั้งเวลาหมดเวลาสำหรับการเรียก API
+                setTimeout(() => {
+                    if (window[callbackName]) {
+                        delete window[callbackName];
+                        hideLoading();
+                        showErrorAlert('การเชื่อมต่อหมดเวลา กรุณาลองใหม่อีกครั้ง');
+                    }
+                }, 10000);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showErrorAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+                hideLoading();
+            }
+        }
+
+        // ฟังก์ชันสำหรับดึงประวัติทั้งหมด
+        async function fetchHistoryData() {
+            try {
+                // ใช้ JSONP เพื่อแก้ปัญหา CORS
+                const script = document.createElement('script');
+                const callbackName = 'jsonpCallback_' + Math.round(Math.random() * 10000000);
+                
+                window[callbackName] = function(result) {
+                    if (result.status === 'success') {
+                        medicationHistory = result.data.map(item => {
+                            // แปลงข้อมูล medications จาก string เป็น array ถ้าจำเป็น
+                            let medications = item.medications;
+                            if (typeof medications === 'string') {
+                                try {
+                                    medications = JSON.parse(medications);
+                                } catch (e) {
+                                    console.error('Error parsing medications:', e);
+                                    medications = [];
+                                }
+                            }
+                            
+                            return {
+                                id: item.id,
+                                date: item.borrowdate, // ตัวพิมพ์เล็กตามที่ส่งมาจาก API
+                                hn: item.hn,
+                                firstName: item.firstname, // ตัวพิมพ์เล็กตามที่ส่งมาจาก API
+                                lastName: item.lastname, // ตัวพิมพ์เล็กตามที่ส่งมาจาก API
+                                medications: medications,
+                                phone: item.phone,
+                                pharmacist: item.pharmacist,
+                                status: item.status,
+                                returnDate: item.returndate || null // ตัวพิมพ์เล็กตามที่ส่งมาจาก API
+                            };
+                        });
+                        
+                        if (historyModal.classList.contains('hidden') === false) {
+                            populateHistoryTable(medicationHistory);
+                        }
+                        
+                        updateDashboard();
+                    } else {
+                        console.error('Error fetching history:', result.message);
+                        showErrorAlert('ไม่สามารถโหลดข้อมูลประวัติได้: ' + result.message);
+                    }
+                    
+                    // ลบฟังก์ชัน callback เมื่อใช้งานเสร็จ
+                    delete window[callbackName];
+                };
+                
+                script.src = `${API_URL}?action=getHistory&callback=${callbackName}`;
+                document.body.appendChild(script);
+                
+                // ตั้งเวลาหมดเวลาสำหรับการเรียก API
+                setTimeout(() => {
+                    if (window[callbackName]) {
+                        delete window[callbackName];
+                        showErrorAlert('การเชื่อมต่อหมดเวลา กรุณาลองใหม่อีกครั้ง');
+                    }
+                }, 10000);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showErrorAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+            }
+        }
+
+        // ฟังก์ชันสำหรับบันทึกการยืมยา
+        async function saveBorrowData(borrowData) {
+            try {
+                showLoading();
+                
+                // สร้าง iframe สำหรับส่งข้อมูลแบบ POST โดยไม่มีปัญหา CORS
+                const iframe = document.createElement('iframe');
+                iframe.name = 'hidden_iframe';
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+                
+                // สร้างฟอร์มสำหรับส่งข้อมูล
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = API_URL;
+                form.target = 'hidden_iframe';
+                
+                // เพิ่มข้อมูลลงในฟอร์ม
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = 'addBorrow';
+                form.appendChild(actionInput);
+                
+                for (const key in borrowData) {
+                    if (key === 'medications') {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = JSON.stringify(borrowData[key]);
+                        form.appendChild(input);
+                    } else {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = borrowData[key];
+                        form.appendChild(input);
+                    }
+                }
+                
+                document.body.appendChild(form);
+                
+                // ตั้งค่า event listener สำหรับ iframe
+                iframe.onload = function() {
+                    showSuccessAlert('บันทึกข้อมูลการยืมยาเรียบร้อยแล้ว');
+                    fetchAllData();
+                    fetchHistoryData();
+                    
+                    // ลบ iframe และฟอร์มเมื่อใช้งานเสร็จ
+                    setTimeout(() => {
+                        document.body.removeChild(iframe);
+                        document.body.removeChild(form);
+                    }, 1000);
+                };
+                
+                // ส่งฟอร์ม
+                form.submit();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showErrorAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+                hideLoading();
+            }
+        }
+
+        // ฟังก์ชันสำหรับบันทึกการคืนยา
+        async function saveReturnData(returnData) {
+            try {
+                showLoading();
+                
+                // สร้าง iframe สำหรับส่งข้อมูลแบบ POST โดยไม่มีปัญหา CORS
+                const iframe = document.createElement('iframe');
+                iframe.name = 'hidden_iframe';
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+                
+                // สร้างฟอร์มสำหรับส่งข้อมูล
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = API_URL;
+                form.target = 'hidden_iframe';
+                
+                // เพิ่มข้อมูลลงในฟอร์ม
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = 'returnMedication';
+                form.appendChild(actionInput);
+                
+                for (const key in returnData) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = returnData[key];
+                    form.appendChild(input);
+                }
+                
+                document.body.appendChild(form);
+                
+                // ตั้งค่า event listener สำหรับ iframe
+                iframe.onload = function() {
+                    showSuccessAlert('บันทึกการคืนยาเรียบร้อยแล้ว');
+                    fetchAllData();
+                    fetchHistoryData();
+                    
+                    // ลบ iframe และฟอร์มเมื่อใช้งานเสร็จ
+                    setTimeout(() => {
+                        document.body.removeChild(iframe);
+                        document.body.removeChild(form);
+                    }, 1000);
+                };
+                
+                // ส่งฟอร์ม
+                form.submit();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showErrorAlert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+                hideLoading();
+            }
+        }
+
+        // Update dashboard
+        function updateDashboard() {
+            const total = borrowedMedications.length;
+            const pending = borrowedMedications.filter(item => item.status === 'pending').length;
+            const returned = medicationHistory ? medicationHistory.filter(item => item.status === 'returned').length : 0;
+
+            borrowedCount.textContent = total;
+            returnedCount.textContent = returned;
+            pendingCount.textContent = pending;
+
+            // Update recent activity
+            recentActivityTable.innerHTML = '';
+            
+            if (borrowedMedications.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="5" class="text-center py-4 text-gray-500">ไม่พบข้อมูล</td>`;
+                recentActivityTable.appendChild(row);
+                return;
+            }
+            
+            // Sort by date (newest first) and take only the first 5
+            const recentActivities = [...borrowedMedications]
+                .sort((a, b) => {
+                    // แปลงวันที่เป็น Date object ถ้าเป็น string
+                    const dateA = typeof a.date === 'string' ? new Date(a.date) : a.date;
+                    const dateB = typeof b.date === 'string' ? new Date(b.date) : b.date;
+                    return dateB - dateA;
+                })
+                .slice(0, 5);
+            
+            recentActivities.forEach(activity => {
+                const row = document.createElement('tr');
+                
+                // Format date
+                let formattedDate = '';
+                if (activity.date) {
+                    const dateObj = new Date(activity.date);
+                    if (!isNaN(dateObj.getTime())) {
+                        formattedDate = formatDate(dateObj);
+                    } else {
+                        formattedDate = 'ไม่ระบุ';
+                    }
+                } else {
+                    formattedDate = 'ไม่ระบุ';
+                }
+                
+                // ตรวจสอบว่ามีชื่อและนามสกุลหรือไม่
+                const fullName = activity.firstName && activity.lastName ? 
+                    `${activity.firstName} ${activity.lastName}` : 
+                    'ไม่ระบุ';
+                
+                row.innerHTML = `
+                    <td class="font-medium">${formattedDate}</td>
+                    <td>${activity.hn || 'ไม่ระบุ'}</td>
+                    <td>${fullName}</td>
+                    <td>${formatMedications(activity.medications)}</td>
+                    <td>
+                        ${activity.status === 'pending' 
+                            ? '<span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">รอคืน</span>' 
+                            : '<span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">คืนแล้ว</span>'}
+                    </td>
+                `;
+                recentActivityTable.appendChild(row);
+            });
+        }
+
+        // Format medications for display
+        function formatMedications(medications) {
+            if (!medications) return 'ไม่ระบุ';
+            if (!Array.isArray(medications)) {
+                try {
+                    medications = JSON.parse(medications);
+                } catch (e) {
+                    return 'ไม่ระบุ';
+                }
+            }
+            return medications.map(med => `${med.name} (${med.quantity})`).join(', ');
+        }
+
+        // Format date
+        function formatDate(date) {
+            if (!date) return 'ไม่ระบุ';
+            if (typeof date === 'string') {
+                date = new Date(date);
+            }
+            if (isNaN(date.getTime())) return 'ไม่ระบุ';
+            return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+        }
+
+        // Show loading overlay
+        function showLoading() {
+            loadingOverlay.classList.remove('hidden');
+        }
+
+        // Hide loading overlay
+        function hideLoading() {
+            loadingOverlay.classList.add('hidden');
+        }
+
+        // Show success alert
+        function showSuccessAlert(message) {
+            successAlertMessage.textContent = message;
+            successAlert.classList.remove('hidden');
+            
+            setTimeout(() => {
+                successAlert.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Show error alert
+        function showErrorAlert(message) {
+            errorAlertMessage.textContent = message;
+            errorAlert.classList.remove('hidden');
+            
+            setTimeout(() => {
+                errorAlert.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Export to CSV
+        function exportToCSV(data, filename) {
+            // Format data for CSV
+            const headers = ['วันที่ยืม', 'HN', 'ชื่อ', 'นามสกุล', 'เบอร์โทร', 'รายการยา', 'เภสัชกร', 'สถานะ', 'วันที่คืน'];
+            
+            let csvContent = headers.join(',') + '\n';
+            
+            data.forEach(item => {
+                const medications = formatMedications(item.medications);
+                const status = item.status === 'pending' ? 'รอคืน' : 'คืนแล้ว';
+                const borrowDate = formatDate(new Date(item.date));
+                const returnDate = item.returnDate ? formatDate(new Date(item.returnDate)) : '';
+                
+                const row = [
+                    borrowDate,
+                    item.hn || '',
+                    item.firstName || '',
+                    item.lastName || '',
+                    item.phone || '',
+                    medications,
+                    item.pharmacist || '',
+                    status,
+                    returnDate
+                ];
+                
+                // Escape fields that might contain commas
+                const escapedRow = row.map(field => {
+                    if (field && field.includes(',')) {
+                        return `"${field}"`;
+                    }
+                    return field;
+                });
+                
+                csvContent += escapedRow.join(',') + '\n';
+            });
+            
+            // Create download link
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Event Listeners
+        borrowBtn.addEventListener('click', () => {
+            borrowModal.classList.remove('hidden');
+        });
+
+        returnBtn.addEventListener('click', () => {
+            returnModal.classList.remove('hidden');
+        });
+
+        closeBorrowModal.addEventListener('click', () => {
+            borrowModal.classList.add('hidden');
+            borrowForm.reset();
+        });
+
+        closeReturnModal.addEventListener('click', () => {
+            returnModal.classList.add('hidden');
+            searchInput.value = '';
+            searchResults.innerHTML = '<div class="text-gray-500 text-center py-8">กรุณาค้นหาข้อมูล</div>';
+        });
+
+        cancelBorrowBtn.addEventListener('click', () => {
+            borrowModal.classList.add('hidden');
+            borrowForm.reset();
+        });
+
+        // Add medication field
+        addMedicationBtn.addEventListener('click', () => {
+            const medicationEntry = document.createElement('div');
+            medicationEntry.className = 'medication-entry grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 pb-4 border-b border-gray-200';
+            medicationEntry.innerHTML = `
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อยา</label>
+                    <input type="text" name="medication[]" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required list="commonMeds">
+                </div>
+                <div class="relative">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">จำนวน</label>
+                    <div class="flex">
+                        <input type="number" name="quantity[]" min="1" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <button type="button" class="remove-medication ml-2 text-red-500 hover:text-red-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+            medicationContainer.appendChild(medicationEntry);
+            
+            // Add event listener to remove button
+            medicationEntry.querySelector('.remove-medication').addEventListener('click', function() {
+                medicationContainer.removeChild(medicationEntry);
+            });
+        });
+
+        // Submit borrow form
+        borrowForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const hn = document.getElementById('hn').value;
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const phone = document.getElementById('phone').value;
+            const pharmacist = document.getElementById('pharmacist').value;
+            
+            const medicationInputs = document.querySelectorAll('input[name="medication[]"]');
+            const quantityInputs = document.querySelectorAll('input[name="quantity[]"]');
+            
+            const medications = [];
+            
+            for (let i = 0; i < medicationInputs.length; i++) {
+                medications.push({
+                    name: medicationInputs[i].value,
+                    quantity: parseInt(quantityInputs[i].value)
+                });
+            }
+            
+            const borrowData = {
+                hn,
+                firstName,
+                lastName,
+                phone,
+                medications,
+                pharmacist
+            };
+            
+            saveBorrowData(borrowData);
+            borrowModal.classList.add('hidden');
+            borrowForm.reset();
+        });
+
+        // Search for borrowed medications
+        searchBtn.addEventListener('click', () => {
+            const searchType = document.querySelector('input[name="searchType"]:checked').value;
+            const searchValue = searchInput.value.trim().toLowerCase();
+            
+            if (!searchValue) {
+                searchResults.innerHTML = '<div class="text-gray-500 text-center py-8">กรุณากรอกคำค้นหา</div>';
+                return;
+            }
+            
+            const pendingBorrows = borrowedMedications.filter(item => item.status === 'pending');
+            
+            let results;
+            if (searchType === 'hn') {
+                results = pendingBorrows.filter(item => item.hn && item.hn.toLowerCase().includes(searchValue));
+            } else {
+                results = pendingBorrows.filter(item => 
+                    (item.firstName && item.firstName.toLowerCase().includes(searchValue)) || 
+                    (item.lastName && item.lastName.toLowerCase().includes(searchValue)) ||
+                    (item.firstName && item.lastName && `${item.firstName} ${item.lastName}`.toLowerCase().includes(searchValue))
+                );
+            }
+            
+            if (results.length === 0) {
+                searchResults.innerHTML = '<div class="text-gray-500 text-center py-8">ไม่พบข้อมูล</div>';
+                return;
+            }
+            
+            searchResults.innerHTML = '';
+            
+            results.forEach(result => {
+                const resultItem = document.createElement('div');
+                resultItem.className = 'bg-white p-4 rounded-lg shadow mb-3 hover:bg-blue-50 cursor-pointer fade-in';
+                
+                // Format date
+                let formattedDate = 'ไม่ระบุ';
+                if (result.date) {
+                    const dateObj = new Date(result.date);
+                    if (!isNaN(dateObj.getTime())) {
+                        formattedDate = formatDate(dateObj);
+                    }
+                }
+                
+                // ตรวจสอบว่ามีชื่อและนามสกุลหรือไม่
+                const fullName = result.firstName && result.lastName ? 
+                    `${result.firstName} ${result.lastName}` : 
+                    'ไม่ระบุ';
+                
+                resultItem.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h5 class="font-medium text-gray-800">${fullName}</h5>
+                            <p class="text-sm text-gray-600">HN: ${result.hn || 'ไม่ระบุ'} | วันที่ยืม: ${formattedDate}</p>
+                            <div class="mt-2">
+                                <p class="text-sm font-medium text-gray-700">รายการยา:</p>
+                                <ul class="list-disc pl-5 text-sm text-gray-600">
+                                    ${result.medications.map(med => `<li>${med.name} (${med.quantity})</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                        <button class="return-btn px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm" data-id="${result.id}">
+                            คืนยา
+                        </button>
+                    </div>
+                `;
+                
+                searchResults.appendChild(resultItem);
+                
+                // Add event listener to return button
+                resultItem.querySelector('.return-btn').addEventListener('click', function() {
+                    const id = parseInt(this.getAttribute('data-id'));
+                    const selectedBorrow = borrowedMedications.find(item => item.id === id);
+                    
+                    if (selectedBorrow) {
+                        // ตรวจสอบว่ามีชื่อและนามสกุลหรือไม่
+                        const fullName = selectedBorrow.firstName && selectedBorrow.lastName ? 
+                            `${selectedBorrow.firstName} ${selectedBorrow.lastName}` : 
+                            'ไม่ระบุ';
+                        
+                        returnPatientName.textContent = fullName;
+                        
+                        returnMedicationList.innerHTML = '';
+                        selectedBorrow.medications.forEach(med => {
+                            const li = document.createElement('li');
+                            li.textContent = `${med.name} (${med.quantity})`;
+                            returnMedicationList.appendChild(li);
+                        });
+                        
+                        confirmReturnBtn.setAttribute('data-id', id);
+                        confirmReturnBtn.setAttribute('data-hn', selectedBorrow.hn || '');
+                        
+                        returnConfirmModal.classList.remove('hidden');
+                    }
+                });
+            });
+        });
+
+        // Close return confirmation modal
+        closeReturnConfirmModal.addEventListener('click', () => {
+            returnConfirmModal.classList.add('hidden');
+        });
+
+        cancelReturnConfirmBtn.addEventListener('click', () => {
+            returnConfirmModal.classList.add('hidden');
+        });
+
+        // Confirm return
+        confirmReturnBtn.addEventListener('click', function() {
+            const id = parseInt(this.getAttribute('data-id'));
+            const hn = this.getAttribute('data-hn');
+            
+            const returnData = {
+                id: id,
+                hn: hn
+            };
+            
+            saveReturnData(returnData);
+            returnConfirmModal.classList.add('hidden');
+            returnModal.classList.add('hidden');
+        });
+
+        // History modal
+        historyBtn.addEventListener('click', () => {
+            fetchHistoryData().then(() => {
+                populateHistoryTable(medicationHistory);
+                historyModal.classList.remove('hidden');
+            });
+        });
+
+        closeHistoryModal.addEventListener('click', () => {
+            historyModal.classList.add('hidden');
+        });
+
+        // View all activities
+        viewAllActivitiesBtn.addEventListener('click', () => {
+            fetchHistoryData().then(() => {
+                populateHistoryTable(medicationHistory);
+                historyModal.classList.remove('hidden');
+            });
+        });
+
+        // Sync data
+        syncBtn.addEventListener('click', async () => {
+            try {
+                showLoading();
+                await fetchAllData();
+                await fetchHistoryData();
+                showSuccessAlert('ซิงค์ข้อมูลเรียบร้อยแล้ว');
+                hideLoading();
+            } catch (error) {
+                console.error('Error syncing data:', error);
+                showErrorAlert('เกิดข้อผิดพลาดในการซิงค์ข้อมูล');
+                hideLoading();
+            }
+        });
+
+        // Populate history table
+        function populateHistoryTable(data) {
+            historyTable.innerHTML = '';
+            
+            if (!data || data.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="7" class="text-center py-4 text-gray-500">ไม่พบข้อมูล</td>`;
+                historyTable.appendChild(row);
+                return;
+            }
+            
+            // Filter by status if needed
+            const statusValue = statusFilter.value;
+            let filteredData = [...data];
+            
+            if (statusValue !== 'all') {
+                filteredData = data.filter(item => item.status === statusValue);
+            }
+            
+            // Sort by date (newest first)
+            filteredData.sort((a, b) => {
+                // แปลงวันที่เป็น Date object ถ้าเป็น string
+                const dateA = typeof a.date === 'string' ? new Date(a.date) : a.date;
+                const dateB = typeof b.date === 'string' ? new Date(b.date) : b.date;
+                return dateB - dateA;
+            });
+            
+            filteredData.forEach(item => {
+                const row = document.createElement('tr');
+                
+                // Format dates
+                let borrowDate = 'ไม่ระบุ';
+                if (item.date) {
+                    const dateObj = new Date(item.date);
+                    if (!isNaN(dateObj.getTime())) {
+                        borrowDate = formatDate(dateObj);
+                    }
+                }
+                
+                let returnDate = '-';
+                if (item.returnDate) {
+                    const dateObj = new Date(item.returnDate);
+                    if (!isNaN(dateObj.getTime())) {
+                        returnDate = formatDate(dateObj);
+                    }
+                }
+                
+                // ตรวจสอบว่ามีชื่อและนามสกุลหรือไม่
+                const fullName = item.firstName && item.lastName ? 
+                    `${item.firstName} ${item.lastName}` : 
+                    'ไม่ระบุ';
+                
+                row.innerHTML = `
+                    <td class="font-medium">${borrowDate}</td>
+                    <td>${item.hn || 'ไม่ระบุ'}</td>
+                    <td>${fullName}</td>
+                    <td>${formatMedications(item.medications)}</td>
+                    <td>
+                        ${item.status === 'pending' 
+                            ? '<span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">รอคืน</span>' 
+                            : '<span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">คืนแล้ว</span>'}
+                    </td>
+                    <td>${item.pharmacist || 'ไม่ระบุ'}</td>
+                    <td>${returnDate}</td>
+                `;
+                historyTable.appendChild(row);
+            });
+        }
+
+        // Search history
+        historySearchBtn.addEventListener('click', () => {
+            const searchValue = historySearchInput.value.trim().toLowerCase();
+            
+            if (!searchValue) {
+                populateHistoryTable(medicationHistory);
+                return;
+            }
+            
+            const results = medicationHistory.filter(item => 
+                (item.hn && item.hn.toLowerCase().includes(searchValue)) || 
+                (item.firstName && item.firstName.toLowerCase().includes(searchValue)) || 
+                (item.lastName && item.lastName.toLowerCase().includes(searchValue)) ||
+                (item.firstName && item.lastName && `${item.firstName} ${item.lastName}`.toLowerCase().includes(searchValue))
+            );
+            
+            populateHistoryTable(results);
+        });
+
+        // Filter history by status
+        statusFilter.addEventListener('change', () => {
+            const searchValue = historySearchInput.value.trim().toLowerCase();
+            
+            if (searchValue) {
+                const results = medicationHistory.filter(item => 
+                    (item.hn && item.hn.toLowerCase().includes(searchValue)) || 
+                    (item.firstName && item.firstName.toLowerCase().includes(searchValue)) || 
+                    (item.lastName && item.lastName.toLowerCase().includes(searchValue)) ||
+                    (item.firstName && item.lastName && `${item.firstName} ${item.lastName}`.toLowerCase().includes(searchValue))
+                );
+                
+                populateHistoryTable(results);
+            } else {
+                populateHistoryTable(medicationHistory);
+            }
+        });
+
+        // Export to CSV
+        exportCSVBtn.addEventListener('click', () => {
+            const statusValue = statusFilter.value;
+            const searchValue = historySearchInput.value.trim().toLowerCase();
+            
+            let dataToExport = [...medicationHistory];
+            
+            // Apply filters
+            if (statusValue !== 'all') {
+                dataToExport = dataToExport.filter(item => item.status === statusValue);
+            }
+            
+            if (searchValue) {
+                dataToExport = dataToExport.filter(item => 
+                    (item.hn && item.hn.toLowerCase().includes(searchValue)) || 
+                    (item.firstName && item.firstName.toLowerCase().includes(searchValue)) || 
+                    (item.lastName && item.lastName.toLowerCase().includes(searchValue)) ||
+                    (item.firstName && item.lastName && `${item.firstName} ${item.lastName}`.toLowerCase().includes(searchValue))
+                );
+            }
+            
+            // Generate filename with current date
+            const today = new Date();
+            const dateStr = `${today.getFullYear()}-${(today.getMonth()+1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+            const filename = `ประวัติการยืม-คืนยา_${dateStr}.csv`;
+            
+            exportToCSV(dataToExport, filename);
+        });
+
+        // Handle Enter key in search inputs
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchBtn.click();
+            }
+        });
+
+        historySearchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                historySearchBtn.click();
+            }
+        });
+
+        // โหลดข้อมูลเมื่อเปิดหน้าเว็บ (แสดง login ทุกครั้ง)
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // แสดง login modal ทุกครั้งที่เปิดหน้า (ไม่เก็บ localStorage)
+                hideLoading();
+                loginModal.classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading initial data:', error);
+                showErrorAlert('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+                hideLoading();
+            }
+        });
+
+        // Login submit - ไม่เก็บ localStorage เพื่อให้ต้องล็อกอินทุกครั้ง
+        loginSubmit.addEventListener('click', async () => {
+            const user = (loginUsername.value || '').trim();
+            const pass = (loginPassword.value || '').trim();
+            if (user === 'admin' && pass === '123') {
+                loginError.classList.add('hidden');
+                loginModal.classList.add('hidden');
+                showLoading();
+                try {
+                    await fetchAllData();
+                    await fetchHistoryData();
+                } catch (e) {
+                    console.error(e);
+                    showErrorAlert('เกิดข้อผิดพลาดในการโหลดข้อมูลหลังเข้าสู่ระบบ');
+                } finally {
+                    hideLoading();
+                }
+            } else {
+                loginError.classList.remove('hidden');
+            }
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9643e240970326cd',t:'MTc1MzM2NDk5Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
