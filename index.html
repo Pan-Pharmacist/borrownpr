@@ -82,6 +82,7 @@
                 visibility: visible;
             }
             #printArea {
+		display: block !important;
                 position: absolute;
                 left: 0;
                 top: 0;
@@ -466,7 +467,7 @@
             </div>
             <div class="print-footer text-center mt-auto font-bold border-t border-gray-400 pt-1">
                 * กรุณาส่งคืนยาภายใน 30 วัน *<br>
-                ขอบคุณที่ให้ความร่วมมือ
+                กลุ่มงานผู้ป่วยนอก โรงพยาบาลนพรัตนราชธานี
             </div>
         </div>
     </div>
@@ -847,10 +848,13 @@
             // เพิ่ม Event Listener ให้ปุ่มพิมพ์ในตาราง
             document.querySelectorAll('.print-row-btn').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    const id = parseInt(this.getAttribute('data-id'));
-                    const activity = borrowedMedications.find(item => item.id === id);
+                    // ใช้ String เพื่อป้องกันบั๊กเวลาดึง ID มาเทียบกัน
+                    const id = this.getAttribute('data-id');
+                    const activity = borrowedMedications.find(item => String(item.id) === String(id));
+                    
                     if (activity) {
                         const today = new Date();
+                        // ใส่ข้อมูลลงในหน้าฉลาก
                         document.getElementById('lblDate').textContent = `${today.getDate().toString().padStart(2, '0')}/${(today.getMonth() + 1).toString().padStart(2, '0')}/${today.getFullYear() + 543}`;
                         document.getElementById('lblHN').textContent = activity.hn || 'ไม่ระบุ';
                         document.getElementById('lblName').textContent = activity.firstName && activity.lastName ? `${activity.firstName} ${activity.lastName}` : 'ไม่ระบุ';
@@ -858,7 +862,12 @@
                         const medList = activity.medications ? activity.medications.map(med => `${med.name} (${med.quantity})`).join(', ') : 'ไม่ระบุ';
                         document.getElementById('lblMeds').textContent = medList;
                         
-                        window.print();
+                        // หน่วงเวลา 100 มิลลิวินาที ให้เบราว์เซอร์เรนเดอร์ข้อความลง DOM ให้เสร็จก่อนสั่งพิมพ์
+                        setTimeout(() => {
+                            window.print();
+                        }, 100);
+                    } else {
+                        showErrorAlert('ไม่พบข้อมูลสำหรับพิมพ์');
                     }
                 });
             });
